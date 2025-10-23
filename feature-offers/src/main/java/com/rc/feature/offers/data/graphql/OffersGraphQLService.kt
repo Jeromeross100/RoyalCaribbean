@@ -1,20 +1,16 @@
-package com.rc.feature.offers.data.graphql
-
 // feature-offers/src/main/java/com/rc/feature/offers/data/graphql/OffersGraphQLService.kt
+package com.rc.feature.offers.data.graphql
 
 import retrofit2.http.Body
 import retrofit2.http.POST
 
 /**
- * GraphQL transport for Offers.
- * Matches the usage in OffersRepositoryImpl:
- *  - fetchOffers(GraphQLRequest) -> OffersListEnvelope
- *  - fetchOfferDetails(GraphQLRequest) -> OfferDetailsEnvelope
- *  - bookNow(GraphQLRequest) -> BookNowEnvelope
- * Also exposes the query/mutation strings used by the repository.
+ * GraphQL transport for Offers & Bookings.
+ * Used by the repository layer.
  */
 interface OffersGraphQLService {
 
+    // ----- Offers -----
     @POST("graphql")
     suspend fun fetchOffers(@Body body: GraphQLRequest): OffersListEnvelope
 
@@ -23,6 +19,13 @@ interface OffersGraphQLService {
 
     @POST("graphql")
     suspend fun bookNow(@Body body: GraphQLRequest): BookNowEnvelope
+
+    // ----- Bookings -----
+    @POST("graphql")
+    suspend fun fetchBookings(@Body body: GraphQLRequest): BookingsListEnvelope
+
+    @POST("graphql")
+    suspend fun cancelBooking(@Body body: GraphQLRequest): CancelEnvelope
 
     companion object {
         // List of offers used on Screen 1
@@ -52,7 +55,7 @@ interface OffersGraphQLService {
             }
         """
 
-        // Optional "Book Now" placeholder mutation
+        // "Book Now" mutation
         const val BOOK_NOW_MUTATION = """
             mutation BookNow(${'$'}offerId: ID!, ${'$'}guest: String!, ${'$'}email: String!) {
               bookNow(offerId: ${'$'}offerId, guestName: ${'$'}guest, email: ${'$'}email) {
@@ -66,6 +69,31 @@ interface OffersGraphQLService {
                   email
                   createdAt
                 }
+              }
+            }
+        """
+
+        // NEW: bookings list
+        const val BOOKINGS_QUERY = """
+            query Bookings {
+              bookings {
+                id
+                confirmationId
+                offerId
+                guestName
+                email
+                createdAt
+              }
+            }
+        """
+
+        // NEW: cancel booking
+        const val CANCEL_BOOKING_MUTATION = """
+            mutation Cancel(${'$'}id: ID!) {
+              cancelBooking(id: ${'$'}id) {
+                ok
+                message
+                id
               }
             }
         """

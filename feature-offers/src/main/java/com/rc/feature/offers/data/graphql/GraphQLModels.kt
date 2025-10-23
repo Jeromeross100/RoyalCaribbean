@@ -11,6 +11,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/* ---------- GENERIC GRAPHQL REQUEST ---------- */
 @Serializable
 data class GraphQLRequest(
     val query: String,
@@ -18,11 +19,16 @@ data class GraphQLRequest(
 )
 
 object AnyAsStringSerializer : KSerializer<Any> {
-    override val descriptor = PrimitiveSerialDescriptor("AnyAsStringSerializer", PrimitiveKind.STRING)
+    override val descriptor =
+        PrimitiveSerialDescriptor("AnyAsStringSerializer", PrimitiveKind.STRING)
+
     override fun deserialize(decoder: Decoder): Any = decoder.decodeString()
-    override fun serialize(encoder: Encoder, value: Any) = encoder.encodeString(value.toString())
+
+    override fun serialize(encoder: Encoder, value: Any) =
+        encoder.encodeString(value.toString())
 }
 
+/* ---------- OFFERS LIST ---------- */
 @Serializable
 data class OffersListEnvelope(@SerialName("data") val data: OffersListData? = null)
 
@@ -38,6 +44,7 @@ data class OfferSummaryDto(
     val price: String
 )
 
+/* ---------- OFFER DETAILS ---------- */
 @Serializable
 data class OfferDetailsEnvelope(@SerialName("data") val data: OfferDetailsData? = null)
 
@@ -54,6 +61,7 @@ data class OfferDetailsDto(
     val price: String
 )
 
+/* ---------- BOOK NOW (CREATE BOOKING) ---------- */
 @Serializable
 data class BookNowEnvelope(@SerialName("data") val data: BookNowData? = null)
 
@@ -67,6 +75,7 @@ data class BookNowResult(
     val booking: BookingDto? = null
 )
 
+/* ---------- SHARED BOOKING DTO ---------- */
 @Serializable
 data class BookingDto(
     val id: String,
@@ -75,4 +84,25 @@ data class BookingDto(
     val guestName: String,
     val email: String,
     val createdAt: String
+)
+
+/* ---------- BOOKINGS LIST (MY BOOKINGS) ---------- */
+@Serializable
+data class BookingsListEnvelope(@SerialName("data") val data: BookingsListData? = null)
+
+@Serializable
+data class BookingsListData(@SerialName("bookings") val bookings: List<BookingDto> = emptyList())
+
+/* ---------- CANCEL BOOKING ---------- */
+@Serializable
+data class CancelEnvelope(@SerialName("data") val data: CancelData? = null)
+
+@Serializable
+data class CancelData(@SerialName("cancelBooking") val cancel: CancelResult? = null)
+
+@Serializable
+data class CancelResult(
+    val ok: Boolean,
+    val message: String,
+    val id: String? = null
 )
