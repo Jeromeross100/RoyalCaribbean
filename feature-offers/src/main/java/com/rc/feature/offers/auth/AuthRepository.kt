@@ -7,6 +7,7 @@ package com.rc.feature.offers.auth
 interface AuthRepository {
     suspend fun signIn(email: String, password: String): Result<User>
     suspend fun signUp(fullName: String, email: String, password: String): Result<User>
+    suspend fun currentUserEmail(): String?
     fun currentUser(): User?
     fun signOut()
 }

@@ -2,12 +2,14 @@
 package com.rc.feature.offers.ui.auth
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade // <-- New Import
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -25,9 +27,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 private object RoyalPalette {
-    val Navy = Color(0xFF003A70)
-    val Gold = Color(0xFFFFC72C)
-    val Sky  = Color(0xFF1F7DD4)
+    val Navy = Color(0xFF061556) // Dark Blue / Oxford Blue
+    val Blue = Color(0xFF0073BB) // Primary Blue / French Blue
+    val Gold = Color(0xFFFEBD11) // Accent Gold / Mikado Yellow
+    val Background = Color(0xFFF8FAFB) // Light Off-White
+    val Error = Color(0xFFB3261E) // Standard Material Error
+    val Sky = Color(0xFFB3D9FF) // Light Blue added to fix the Unresolved reference: Sky error
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,9 +57,18 @@ fun RoyalAuthScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Royal Caribbean") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = RoyalPalette.Navy,
-                    titleContentColor = Color.White
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         }
@@ -62,6 +76,7 @@ fun RoyalAuthScreen(
         Column(
             Modifier
                 .fillMaxSize()
+                // FIX: Used the new RoyalPalette.Sky color to resolve the reference.
                 .background(
                     Brush.verticalGradient(
                         listOf(RoyalPalette.Navy, RoyalPalette.Sky.copy(alpha = 0.2f), Color.White)
@@ -81,6 +96,7 @@ fun RoyalAuthScreen(
                         if (state.mode == AuthMode.SignIn) "Welcome back" else "Create your account",
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        // Using a darker color for text on Gold for better contrast
                         color = Color(0xFF2C2C2C)
                     )
                 }
@@ -89,10 +105,12 @@ fun RoyalAuthScreen(
             // Form card
             Surface(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp)
                     .fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                tonalElevation = 6.dp
+                // Using MaterialTheme primary color for tonal elevation to better fit the M3 standard
+                tonalElevation = 6.dp,
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Column(
                     Modifier.padding(20.dp),
@@ -104,6 +122,7 @@ fun RoyalAuthScreen(
                         onSelected = { vm.toggleMode() }
                     )
 
+                    // Animated field for full name
                     AnimatedVisibility(
                         visible = state.mode == AuthMode.CreateAccount,
                         enter = androidx.compose.animation.fadeIn(tween(250)),
@@ -136,46 +155,60 @@ fun RoyalAuthScreen(
                             IconButton(onClick = vm::togglePasswordVisibility) {
                                 Icon(
                                     if (state.isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = null
+                                    contentDescription = "Toggle password visibility"
                                 )
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    // Error chip - kept for error display
                     if (state.error != null) {
                         AssistChip(
-                            onClick = {},
+                            onClick = { /* Consider a dismiss action or no-op */ },
                             label = { Text(state.error!!) },
                             colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                labelColor = MaterialTheme.colorScheme.onErrorContainer
                             )
                         )
                     }
 
+                    // Primary Action Button
                     Button(
                         onClick = vm::submit,
                         enabled = !state.isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(14.dp)),
+                        colors = ButtonDefaults.buttonColors(containerColor = RoyalPalette.Blue)
                     ) {
-                        if (state.isLoading) {
-                            CircularProgressIndicator(
-                                strokeWidth = 2.dp,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .padding(end = 8.dp),
-                                color = Color.White
-                            )
+                        // FIX: Use Crossfade for state transition, eliminating the RowScope issue
+                        Crossfade(
+                            targetState = state.isLoading,
+                            label = "AuthButtonCrossfade",
+                            animationSpec = tween(300)
+                        ) { isLoading ->
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color.White
+                                )
+                            } else {
+                                Text(if (state.mode == AuthMode.SignIn) "Sign In" else "Create Account")
+                            }
                         }
-                        Text(if (state.mode == AuthMode.SignIn) "Sign In" else "Create Account")
                     }
 
+                    // Mode Toggle TextButton
                     TextButton(
                         onClick = vm::toggleMode,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = RoyalPalette.Navy
+                        )
                     ) {
                         Text(
                             if (state.mode == AuthMode.SignIn) "Need an account? Create one"
@@ -187,6 +220,7 @@ fun RoyalAuthScreen(
 
             Spacer(Modifier.weight(1f))
 
+            // Footer Badge
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -227,6 +261,7 @@ private fun SegmentedButton(
                     .weight(1f)
                     .height(40.dp),
                 shape = RoundedCornerShape(10.dp),
+                // Using Navy for the selected state
                 color = if (selected) RoyalPalette.Navy else Color.Transparent,
                 tonalElevation = if (selected) 1.dp else 0.dp,
                 onClick = { onSelected(idx) }

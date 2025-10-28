@@ -17,7 +17,10 @@ sealed interface AuthUiState {
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
+    // If you created an interface (recommended), use AuthManagerContract.
+    // Otherwise keep AuthManager.
     private val authManager: AuthManager
+    // private val authManager: AuthManagerContract
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
@@ -34,8 +37,21 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun signUp(email: String, password: String) {
+        _state.value = AuthUiState.Loading
+        viewModelScope.launch {
+            val result = authManager.signUp(email, password)
+            _state.value = result.fold(
+                onSuccess = { AuthUiState.Success(it) },
+                onFailure = { AuthUiState.Error(it.message ?: "Sign up failed") }
+            )
+        }
+    }
+
     fun signOut() {
-        authManager.signOut()
-        _state.value = AuthUiState.Idle
+        viewModelScope.launch {
+            runCatching { authManager.signOut() }
+            _state.value = AuthUiState.Idle
+        }
     }
 }

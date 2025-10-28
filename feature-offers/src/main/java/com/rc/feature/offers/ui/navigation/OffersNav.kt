@@ -7,7 +7,7 @@ package com.rc.feature.offers.ui.navigation
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
-import com.rc.feature.offers.ui.details.OfferDetailsScreen
+import com.rc.feature.offers.ui.details.OfferDetailsRoute // <-- use the VM-owning Route
 import com.rc.feature.offers.ui.list.OffersListScreen
 
 object OffersRoutes {
@@ -23,9 +23,21 @@ fun NavGraphBuilder.offersGraphFeature(navController: NavHostController) {
     }
     composable(OffersRoutes.DETAILS) { backStackEntry ->
         val id = backStackEntry.arguments?.getString("id").orEmpty()
-        OfferDetailsScreen(
+        // Call the Route, which accepts onBack. This fixes: "Cannot find a parameter with this name: onBack"
+        OfferDetailsRoute(
             offerId = id,
             onBack = { navController.popBackStack() }
         )
     }
 }
+
+/*
+If you haven't added OfferDetailsRoute yet, either:
+1) Add it (recommended), or
+2) Temporarily call the screen without onBack (system back will still work):
+
+    import com.rc.feature.offers.ui.details.OfferDetailsScreen
+    ...
+    OfferDetailsScreen(offerId = id)
+
+*/

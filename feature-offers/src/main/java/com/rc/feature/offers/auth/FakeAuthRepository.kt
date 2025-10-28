@@ -36,6 +36,10 @@ class FakeAuthRepository @Inject constructor() : AuthRepository {
         return Result.success(user)
     }
 
+    override suspend fun currentUserEmail(): String? {
+        TODO("Not yet implemented")
+    }
+
     override fun currentUser(): User? = loggedIn
 
     override fun signOut() { loggedIn = null }

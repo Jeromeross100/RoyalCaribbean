@@ -1,7 +1,5 @@
 package com.rc.feature.offers.auth
 
-// app/src/main/java/com/rc/app/auth/AuthManager.kt
-
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,11 +7,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AuthManager @Inject constructor() {
-    private val _user = MutableStateFlow<User?>(null)
-    val user: StateFlow<User?> = _user
+class AuthManager @Inject constructor() : AuthManagerContract {
 
-    suspend fun signIn(email: String, password: String): Result<User> {
+    private val _user = MutableStateFlow<User?>(null)
+    override val user: StateFlow<User?> = _user
+
+    override suspend fun signIn(email: String, password: String): Result<User> {
         delay(600) // simulate network
         if (!email.contains("@") || password.length < 6) {
             return Result.failure(IllegalArgumentException("Invalid email or password"))
@@ -24,14 +23,28 @@ class AuthManager @Inject constructor() {
             id = UserId("u-$username"),
             fullName = "Captain ${username.replaceFirstChar { it.uppercase() }}",
             email = email
-            // crownAnchorsTier and points use defaults from the User model
         )
-
         _user.value = user
         return Result.success(user)
     }
 
-    fun signOut() {
+    override suspend fun signUp(email: String, password: String): Result<User> {
+        delay(800) // simulate network for signup
+        if (!email.contains("@") || password.length < 6) {
+            return Result.failure(IllegalArgumentException("Email must contain @ and password must be 6+ chars"))
+        }
+
+        val username = email.substringBefore("@")
+        val user = User(
+            id = UserId("u-$username"),
+            fullName = "New Sailor ${username.replaceFirstChar { it.uppercase() }}",
+            email = email
+        )
+        _user.value = user
+        return Result.success(user)
+    }
+
+    override fun signOut() {
         _user.value = null
     }
 }

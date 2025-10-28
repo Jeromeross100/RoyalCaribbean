@@ -1,195 +1,146 @@
-// app/src/main/java/com/rc/feature/offers/ui/navigation/RootNavHost.kt
+// app/src/main/java/.../AppNavHost.kt
 package com.rc.feature.offers.ui.navigation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
-import coil.compose.AsyncImage
+import androidx.navigation.navArgument
+import com.rc.feature.offers.auth.AuthViewModel
+import com.rc.feature.offers.auth.AuthUiState // NOTE: Assuming this class exists for ProfileScreen logic
+import com.rc.feature.offers.profile.ProfileScreen
 import com.rc.feature.offers.bookings.BookingsScreen
 import com.rc.feature.offers.schedule.ScheduleScreen
-import com.rc.feature.offers.profile.ProfileScreen
-import com.rc.feature.offers.ui.auth.AuthViewModel
-import com.rc.feature.offers.ui.auth.RoyalAuthScreen
+import com.rc.feature.offers.ui.details.OfferDetailsRoute
+import com.rc.feature.offers.ui.list.OffersListScreen
+import com.rc.feature.offers.ui.auth.HomeScreen
+import com.rc.feature.offers.ui.auth.RoyalAuthScreen // <-- NEW IMPORT
 
-// ----- Top-level routes -----
-private object RootRoutes {
+object RootRoutes {
     const val HOME = "home"
-    const val OFFERS = OffersRoutes.LIST
+    const val OFFERS = "offers"
     const val BOOKINGS = "bookings"
     const val SCHEDULE = "schedule"
-    const val LOGIN = "login"
+    const val OFFER_DETAILS_PATTERN = "offer/{id}"
+    fun offerDetails(id: String) = "offer/$id"
+    // RENAMED from LOGIN/SIGNUP to a single AUTH route
+    const val AUTH = "auth"
     const val PROFILE = "profile"
 }
 
-// ----- Bottom bar items -----
-private data class BottomItem(
-    val route: String,
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)
-
-private val bottomItems = listOf(
-    BottomItem(RootRoutes.HOME, "Home", Icons.Default.Home),
-    BottomItem(RootRoutes.OFFERS, "Offers", Icons.Default.LocalOffer),
-    BottomItem(RootRoutes.BOOKINGS, "Bookings", Icons.Default.ReceiptLong),
-    BottomItem(RootRoutes.SCHEDULE, "Schedule", Icons.Default.CalendarMonth)
-)
-
 @Composable
 fun AppNavHost() {
-    val navController = rememberNavController()
-    val backStack by navController.currentBackStackEntryAsState()
-    val current = backStack?.destination
+    val nav = rememberNavController()
+    val items = listOf(
+        RootRoutes.HOME to Icons.Filled.Home,
+        RootRoutes.OFFERS to Icons.Filled.LocalOffer,
+        RootRoutes.BOOKINGS to Icons.AutoMirrored.Filled.ReceiptLong,
+        RootRoutes.SCHEDULE to Icons.Filled.CalendarMonth
+    )
+    val backstack by nav.currentBackStackEntryAsState()
+    val route = backstack?.destination?.route
+
+    // Hide bottom bar on auth & details screens
+    val showBottomBar = route !in setOf(
+        RootRoutes.AUTH, // <-- Updated from LOGIN/SIGNUP
+        RootRoutes.OFFER_DETAILS_PATTERN
+    )
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                bottomItems.forEach { item ->
-                    val selected = current.isInHierarchy(item.route)
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) }
-                    )
+            if (showBottomBar) {
+                NavigationBar {
+                    items.forEach { (r, icon) ->
+                        NavigationBarItem(
+                            selected = route == r,
+                            onClick = {
+                                nav.navigate(r) {
+                                    launchSingleTop = true
+                                    popUpTo(RootRoutes.HOME) { saveState = true }
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(icon, null) },
+                            label = { Text(r.replaceFirstChar { it.uppercase() }) }
+                        )
+                    }
                 }
             }
         }
     ) { innerPadding ->
         NavHost(
-            navController = navController,
+            navController = nav,
             startDestination = RootRoutes.HOME,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding).fillMaxSize(),
         ) {
-            // Home
+            // HOME
             composable(RootRoutes.HOME) {
                 HomeScreen(
-                    onExplore = { navController.navigate(RootRoutes.OFFERS) },
-                    onLogin = { navController.navigate(RootRoutes.LOGIN) }
+                    onExploreOffers = { nav.navigate(RootRoutes.OFFERS) },
+                    onSignIn = { nav.navigate(RootRoutes.AUTH) } // <-- Updated to AUTH
                 )
             }
 
-            // Offers feature subgraph (list + details)
-            offersGraphFeature(navController)
+            // OFFERS LIST
+            composable(RootRoutes.OFFERS) {
+                OffersListScreen(onOfferClick = { id -> nav.navigate(RootRoutes.offerDetails(id)) })
+            }
 
-            // Tabs
+            // BOOKINGS
             composable(RootRoutes.BOOKINGS) { BookingsScreen() }
+
+            // SCHEDULE
             composable(RootRoutes.SCHEDULE) { ScheduleScreen() }
 
-            // LOGIN -> PROFILE on success (UPDATED)
-            composable(RootRoutes.LOGIN) {
+            // OFFER DETAILS
+            composable(
+                route = RootRoutes.OFFER_DETAILS_PATTERN,
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("id").orEmpty()
+                OfferDetailsRoute(offerId = id, onBack = { nav.popBackStack() })
+            }
+
+            // AUTHENTICATION (Replaces both LOGIN and SIGNUP)
+            composable(RootRoutes.AUTH) {
                 RoyalAuthScreen(
                     onSuccess = {
-                        navController.navigate(RootRoutes.PROFILE) {
+                        // Navigate to PROFILE upon successful Sign In or Sign Up
+                        nav.navigate(RootRoutes.PROFILE) {
                             popUpTo(RootRoutes.HOME) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onBack = { nav.popBackStack() }
+                )
+            }
+
+            // PROFILE (with Logout)
+            composable(RootRoutes.PROFILE) {
+                val authVm = hiltViewModel<AuthViewModel>()
+                ProfileScreen(
+                    // NOTE: The AuthUiState reference must be correct for this line to compile.
+                    userProvider = { (authVm.state.value as? AuthUiState.Success)?.user },
+                    onLogout = {
+                        authVm.signOut()
+                        nav.navigate(RootRoutes.HOME) {
+                            popUpTo(RootRoutes.HOME) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
-
-            // PROFILE destination (UPDATED)
-            composable(RootRoutes.PROFILE) {
-                val authVm = androidx.hilt.navigation.compose.hiltViewModel<AuthViewModel>()
-                ProfileScreen(userProvider = { authVm.state.value.user })
-            }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun HomeScreen(
-    onExplore: () -> Unit,
-    onLogin: () -> Unit
-) {
-    Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Welcome aboard 👋") }) }
-    ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(20.dp))
-            ) {
-                AsyncImage(
-                    model = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
-                    contentDescription = "Hero",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize()
-                )
-                Box(
-                    Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, Color(0x99000000))
-                            )
-                        )
-                )
-                Column(
-                    Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(16.dp)
-                ) {
-                    Text("Sail into Paradise", style = MaterialTheme.typography.headlineSmall, color = Color.White)
-                    Text("Exclusive offers & curated itineraries", color = Color.White.copy(alpha = 0.9f))
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ElevatedButton(onClick = onExplore) { Text("Explore Offers") }
-                OutlinedButton(onClick = onLogin) { Text("Sign In") }
-            }
-
-            Surface(tonalElevation = 1.dp, shape = RoundedCornerShape(16.dp)) {
-                Column(
-                    Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Tip", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Tap an offer to see full details, itinerary timeline, and book with one tap.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun NavDestination?.isInHierarchy(route: String): Boolean {
-    var d = this
-    while (d != null) { if (d.route == route) return true; d = d.parent }
-    return false
 }
