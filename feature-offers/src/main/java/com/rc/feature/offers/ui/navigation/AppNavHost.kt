@@ -36,6 +36,9 @@ object RootRoutes {
     // RENAMED from LOGIN/SIGNUP to a single AUTH route
     const val AUTH = "auth"
     const val PROFILE = "profile"
+    // New destination for Destinations Screen, assuming it exists
+    const val DESTINATIONS = "destinations"
+    const val LOYALTY = "loyalty" // New destination for Loyalty Screen
 }
 
 @Composable
@@ -87,7 +90,11 @@ fun AppNavHost() {
             composable(RootRoutes.HOME) {
                 HomeScreen(
                     onExploreOffers = { nav.navigate(RootRoutes.OFFERS) },
-                    onSignIn = { nav.navigate(RootRoutes.AUTH) } // <-- Updated to AUTH
+                    onSignIn = { nav.navigate(RootRoutes.AUTH) }, // <-- Updated to AUTH
+                    // --- FIX: Pass the new required parameters ---
+                    onViewDestinations = { nav.navigate(RootRoutes.DESTINATIONS) },
+                    onLearnMoreLoyalty = { nav.navigate(RootRoutes.LOYALTY) }
+                    // ---------------------------------------------
                 )
             }
 
@@ -101,6 +108,16 @@ fun AppNavHost() {
 
             // SCHEDULE
             composable(RootRoutes.SCHEDULE) { ScheduleScreen() }
+
+            // DESTINATIONS (Placeholder for the new route)
+            composable(RootRoutes.DESTINATIONS) {
+                Text(text = "Destinations Screen Content")
+            }
+
+            // LOYALTY (Placeholder for the new route)
+            composable(RootRoutes.LOYALTY) {
+                Text(text = "Loyalty Program Screen Content")
+            }
 
             // OFFER DETAILS
             composable(
