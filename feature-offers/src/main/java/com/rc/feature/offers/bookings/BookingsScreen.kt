@@ -21,6 +21,9 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.rc.feature.offers.data.graphql.BookingDto
 import com.rc.feature.offers.util.UIState
+import androidx.compose.foundation.BorderStroke // Added missing import
+import androidx.compose.foundation.shape.RoundedCornerShape // Added missing import
+import androidx.compose.ui.text.font.FontWeight // Added missing import
 
 // ROYAL CARIBBEAN PALETTE DEFINITION
 private object RoyalPalette {
@@ -29,9 +32,9 @@ private object RoyalPalette {
     val Background = Color(0xFFF8FAFB)
 }
 
-// UPDATED: NEW WORKING CRUISE SHIP IMAGE URL (Source: Unsplash)
+// RELIABLE SHIP IMAGE URL (Re-using last working URL)
 private const val ROYAL_SHIP_IMAGE_URL =
-    "https://picsum.photos/id/238/300/200"
+    "https://picsum.photos/id/238/600/400"
 
 // ⚓ CONSTANT FOR THE LOG TAG
 private const val LOG_TAG = "SHIP_IMAGE"
@@ -39,7 +42,6 @@ private const val LOG_TAG = "SHIP_IMAGE"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingsScreen(
-    // CRITICAL UPDATE: Add navigation lambda parameter
     onNavigateToOffers: () -> Unit,
     vm: BookingsViewModel = hiltViewModel()
 ) {
@@ -90,7 +92,6 @@ fun BookingsScreen(
                 is UIState.Success ->
                     BookingsList(
                         bookings = s.data,
-                        // CRITICAL UPDATE: Pass the navigation action
                         onExploreOffers = onNavigateToOffers,
                         onCancel = { bookingToCancel = it }
                     )
@@ -103,8 +104,8 @@ fun BookingsScreen(
 @Composable
 private fun BookingsList(
     bookings: List<BookingDto>,
-    onExploreOffers: () -> Unit, // Navigation action passed here
-    onCancel: (BookingDto) -> Unit
+    onExploreOffers: () -> Unit,
+    onCancel: (BookingDto) -> Unit // THIS IS NOW USED BELOW
 ) {
     if (bookings.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -116,7 +117,6 @@ private fun BookingsList(
                 val context = LocalContext.current
 
                 AsyncImage(
-                    // USES THE NEW WORKING ROYAL_SHIP_IMAGE_URL
                     model = ImageRequest.Builder(context)
                         .data(ROYAL_SHIP_IMAGE_URL)
                         .listener(
@@ -152,7 +152,6 @@ private fun BookingsList(
                 Spacer(Modifier.height(24.dp))
                 // Primary CTA
                 Button(
-                    // CONNECTED: Clicks now execute the onExploreOffers lambda (navigation)
                     onClick = onExploreOffers,
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalPalette.Blue),
                     modifier = Modifier.fillMaxWidth()
@@ -164,13 +163,48 @@ private fun BookingsList(
         return
     }
 
-    // LazyColumn for actual bookings (remains the same)
+    // LazyColumn for actual bookings
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(bookings, key = { it.id }) { b ->
-            // ... (Booking Card UI remains the same) ...
+            // ⚓ Branded Booking Card (COMPLETE IMPLEMENTATION)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                tonalElevation = 6.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    // Highlight Confirmation ID in Navy Blue and Bold
+                    Text(
+                        "Confirmation: ${b.confirmationId}",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = RoyalPalette.Navy
+                        )
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text("Guest: ${b.guestName}", style = MaterialTheme.typography.bodyLarge)
+                    Text("Email: ${b.email}", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Offer ID: ${b.offerId}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text("Created: ${b.createdAt}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Outlined Cancel Button (Uses the onCancel lambda)
+                    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { onCancel(b) }, // <-- USAGE: onCancel is called here
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                        ) { Text("Cancel") }
+                    }
+                }
+            }
         }
     }
 }

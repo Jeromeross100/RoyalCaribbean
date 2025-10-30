@@ -39,7 +39,7 @@ fun SignUpScreen(
     }
 
     Scaffold(
-        // 🚢 UPDATED: Branded Top Bar
+        // UPDATED: Branded Top Bar
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Create Account") },
