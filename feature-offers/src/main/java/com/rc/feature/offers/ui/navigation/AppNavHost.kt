@@ -104,7 +104,12 @@ fun AppNavHost() {
             }
 
             // BOOKINGS
-            composable(RootRoutes.BOOKINGS) { BookingsScreen() }
+            composable(RootRoutes.BOOKINGS) {
+                // 🛑 FIX: Pass the onNavigateToOffers parameter here
+                BookingsScreen(
+                    onNavigateToOffers = { nav.navigate(RootRoutes.OFFERS) }
+                )
+            }
 
             // SCHEDULE
             composable(RootRoutes.SCHEDULE) { ScheduleScreen() }

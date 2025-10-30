@@ -2,24 +2,31 @@ package com.rc.feature.offers.auth
 
 // feature-offers/src/main/java/com/rc/feature/offers/auth/FakeAuthRepository.kt
 
-// feature-offers/src/main/java/com/rc/feature/offers/auth/FakeAuthRepository.kt
-
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class FakeAuthRepository @Inject constructor() : AuthRepository {
+class FakeAuthRepository @Inject constructor() : AuthRepository { // Removed 'abstract' keyword
     private val users = mutableMapOf<String, Pair<User, String>>() // email -> (user, password)
-    private var loggedIn: User? = null
+
+    // 1. Implementation of the required abstract member from AuthRepository
+    private val _user = MutableStateFlow<User?>(null)
+    override val user: StateFlow<User?> = _user // Implement the StateFlow
+
+    // Removed the private var loggedIn: User? = null as it is redundant, using _user.value instead
+    // private var loggedIn: User? = null
 
     override suspend fun signIn(email: String, password: String): Result<User> {
         delay(700)
         val match = users[email.lowercase()]
         return if (match != null && match.second == password) {
-            loggedIn = match.first
-            Result.success(match.first)
+            val user = match.first
+            _user.value = user // Use the StateFlow to track logged in status
+            Result.success(user)
         } else Result.failure(IllegalArgumentException("Invalid email or password"))
     }
 
@@ -32,15 +39,16 @@ class FakeAuthRepository @Inject constructor() : AuthRepository {
         }
         val user = User(UserId(UUID.randomUUID().toString()), fullName.trim(), key)
         users[key] = user to password
-        loggedIn = user
+        _user.value = user // Use the StateFlow to track logged in status
         return Result.success(user)
     }
 
-    override suspend fun currentUserEmail(): String? {
-        TODO("Not yet implemented")
+    // REMOVED: 'currentUserEmail()' because it is not defined in the AuthRepository interface.
+    // override suspend fun currentUserEmail(): String? { ... } // THIS LINE IS DELETED
+
+    override fun currentUser(): User? = _user.value // Use the StateFlow value
+
+    override fun signOut() {
+        _user.value = null
     }
-
-    override fun currentUser(): User? = loggedIn
-
-    override fun signOut() { loggedIn = null }
 }
