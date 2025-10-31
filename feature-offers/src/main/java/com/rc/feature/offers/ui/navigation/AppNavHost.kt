@@ -16,15 +16,22 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+
+// --- NEW SCREEN IMPORTS ---
+import com.rc.feature.offers.ship.ShipUtilityScreen
+import com.rc.feature.offers.ports.PortPlannerScreen
+import com.rc.feature.offers.account.WalletScreen
+// --------------------------
+
 import com.rc.feature.offers.auth.AuthViewModel
-import com.rc.feature.offers.auth.AuthUiState // NOTE: Assuming this class exists for ProfileScreen logic
+import com.rc.feature.offers.auth.AuthUiState
 import com.rc.feature.offers.profile.ProfileScreen
 import com.rc.feature.offers.bookings.BookingsScreen
 import com.rc.feature.offers.schedule.ScheduleScreen
 import com.rc.feature.offers.ui.details.OfferDetailsRoute
 import com.rc.feature.offers.ui.list.OffersListScreen
 import com.rc.feature.offers.ui.auth.HomeScreen
-import com.rc.feature.offers.ui.auth.RoyalAuthScreen // <-- NEW IMPORT
+import com.rc.feature.offers.ui.auth.RoyalAuthScreen
 
 object RootRoutes {
     const val HOME = "home"
@@ -33,12 +40,16 @@ object RootRoutes {
     const val SCHEDULE = "schedule"
     const val OFFER_DETAILS_PATTERN = "offer/{id}"
     fun offerDetails(id: String) = "offer/$id"
-    // RENAMED from LOGIN/SIGNUP to a single AUTH route
     const val AUTH = "auth"
     const val PROFILE = "profile"
-    // New destination for Destinations Screen, assuming it exists
     const val DESTINATIONS = "destinations"
-    const val LOYALTY = "loyalty" // New destination for Loyalty Screen
+    const val LOYALTY = "loyalty"
+
+    // --- NEW SCREEN ROUTES ---
+    const val SHIP_UTILITY = "ship_utility"
+    const val PORT_PLANNER = "port_planner"
+    const val WALLET = "wallet"
+    // -------------------------
 }
 
 @Composable
@@ -55,8 +66,11 @@ fun AppNavHost() {
 
     // Hide bottom bar on auth & details screens
     val showBottomBar = route !in setOf(
-        RootRoutes.AUTH, // <-- Updated from LOGIN/SIGNUP
-        RootRoutes.OFFER_DETAILS_PATTERN
+        RootRoutes.AUTH,
+        RootRoutes.OFFER_DETAILS_PATTERN,
+        RootRoutes.SHIP_UTILITY,
+        RootRoutes.PORT_PLANNER,
+        RootRoutes.WALLET
     )
 
     Scaffold(
@@ -86,15 +100,18 @@ fun AppNavHost() {
             startDestination = RootRoutes.HOME,
             modifier = Modifier.padding(innerPadding).fillMaxSize(),
         ) {
-            // HOME
+            // HOME (Updated to include navigation for utility screens)
             composable(RootRoutes.HOME) {
                 HomeScreen(
                     onExploreOffers = { nav.navigate(RootRoutes.OFFERS) },
-                    onSignIn = { nav.navigate(RootRoutes.AUTH) }, // <-- Updated to AUTH
-                    // --- FIX: Pass the new required parameters ---
+                    onSignIn = { nav.navigate(RootRoutes.AUTH) },
                     onViewDestinations = { nav.navigate(RootRoutes.DESTINATIONS) },
-                    onLearnMoreLoyalty = { nav.navigate(RootRoutes.LOYALTY) }
-                    // ---------------------------------------------
+                    onLearnMoreLoyalty = { nav.navigate(RootRoutes.LOYALTY) },
+                    // *** FIX: Connect the utility lambdas to the correct routes ***
+                    onNavigateToShipUtility = { nav.navigate(RootRoutes.SHIP_UTILITY) },
+                    onNavigateToPortPlanner = { nav.navigate(RootRoutes.PORT_PLANNER) },
+                    onNavigateToWallet = { nav.navigate(RootRoutes.WALLET) }
+                    // *** End FIX ***
                 )
             }
 
@@ -105,7 +122,6 @@ fun AppNavHost() {
 
             // BOOKINGS
             composable(RootRoutes.BOOKINGS) {
-                // 🛑 FIX: Pass the onNavigateToOffers parameter here
                 BookingsScreen(
                     onNavigateToOffers = { nav.navigate(RootRoutes.OFFERS) }
                 )
@@ -113,6 +129,20 @@ fun AppNavHost() {
 
             // SCHEDULE
             composable(RootRoutes.SCHEDULE) { ScheduleScreen() }
+
+            // --- NEW SCREEN DEFINITIONS (These are correct) ---
+            composable(RootRoutes.SHIP_UTILITY) {
+                ShipUtilityScreen()
+            }
+
+            composable(RootRoutes.PORT_PLANNER) {
+                PortPlannerScreen()
+            }
+
+            composable(RootRoutes.WALLET) {
+                WalletScreen()
+            }
+            // ------------------------------
 
             // DESTINATIONS (Placeholder for the new route)
             composable(RootRoutes.DESTINATIONS) {
@@ -133,11 +163,10 @@ fun AppNavHost() {
                 OfferDetailsRoute(offerId = id, onBack = { nav.popBackStack() })
             }
 
-            // AUTHENTICATION (Replaces both LOGIN and SIGNUP)
+            // AUTHENTICATION
             composable(RootRoutes.AUTH) {
                 RoyalAuthScreen(
                     onSuccess = {
-                        // Navigate to PROFILE upon successful Sign In or Sign Up
                         nav.navigate(RootRoutes.PROFILE) {
                             popUpTo(RootRoutes.HOME) { saveState = true }
                             launchSingleTop = true
@@ -152,7 +181,6 @@ fun AppNavHost() {
             composable(RootRoutes.PROFILE) {
                 val authVm = hiltViewModel<AuthViewModel>()
                 ProfileScreen(
-                    // NOTE: The AuthUiState reference must be correct for this line to compile.
                     userProvider = { (authVm.state.value as? AuthUiState.Success)?.user },
                     onLogout = {
                         authVm.signOut()
