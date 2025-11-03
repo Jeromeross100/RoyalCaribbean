@@ -1,0 +1,1 @@
+-keep,allowobfuscation,allowshrinking class com.rc.feature.offers.ui.details.OfferDetailsViewModel

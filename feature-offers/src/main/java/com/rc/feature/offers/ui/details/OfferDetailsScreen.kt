@@ -1,4 +1,3 @@
-// feature-offers/src/main/java/com/rc/feature/offers/ui/details/OfferDetailsScreen.kt
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 
 package com.rc.feature.offers.ui.details
@@ -20,17 +19,12 @@ import com.rc.feature.offers.domain.OfferDetails
 import com.rc.feature.offers.util.UIState
 import com.rc.feature.offers.util.formatPrice
 
-// ROYAL CARIBBEAN PALETTE DEFINITION
-// NOTE: Ideally, this should be defined in a shared theme file.
 private object RoyalPalette {
-    val Navy = Color(0xFF061556) // Dark Blue / Oxford Blue (for headers, strong text)
-    val Blue = Color(0xFF0073BB) // Primary Blue / French Blue (for CTAs, active states)
-    val Background = Color(0xFFF8FAFB) // Light Off-White
+    val Navy = Color(0xFF061556)
+    val Blue = Color(0xFF0073BB)
+    val Background = Color(0xFFF8FAFB)
 }
 
-/**
- * ROUTE — owns VM/state and exposes a safe default for onBack.
- */
 @Composable
 fun OfferDetailsRoute(
     offerId: String,
@@ -42,7 +36,6 @@ fun OfferDetailsRoute(
     LaunchedEffect(offerId) { viewModel.load(offerId) }
 
     Scaffold(
-        // 🚢 UPDATED: Branded Top Bar
         topBar = {
             TopAppBar(
                 title = { Text("Offer Details") },
@@ -58,96 +51,104 @@ fun OfferDetailsRoute(
                 }
             )
         },
-        // ⚓ UPDATED: Branded Bottom Bar (Price and Book Now CTA)
         bottomBar = {
             val s = state
             if (s is UIState.Success<OfferDetails>) {
-                Surface(shadowElevation = 8.dp) { // Increased shadow for floating bar look
+                Surface(shadowElevation = 8.dp) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             formatPrice(s.data.price),
                             style = MaterialTheme.typography.headlineSmall.copy(
-                                color = RoyalPalette.Blue, // Highlight price in brand blue
+                                color = RoyalPalette.Blue,
                                 fontWeight = FontWeight.ExtraBold
                             )
                         )
                         Button(
-                            onClick = { /* placeholder */ },
-                            // Use primary brand blue for the CTA
+                            onClick = { /* TODO: handle booking */ },
                             colors = ButtonDefaults.buttonColors(containerColor = RoyalPalette.Blue),
                             modifier = Modifier.height(52.dp)
-                        ) { Text("Book Now", color = Color.White) }
+                        ) {
+                            Text("Book Now", color = Color.White)
+                        }
                     }
                 }
             }
         },
         containerColor = RoyalPalette.Background
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
             when (val s = state) {
-                is UIState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                is UIState.Error -> ErrorUi(onRetry = { viewModel.load(offerId) })
-                is UIState.Success<OfferDetails> -> DetailsContent(details = s.data)
+                is UIState.Loading -> {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                }
+
+                is UIState.Error -> {
+                    ErrorUi(onRetry = { viewModel.load(offerId) })
+                }
+
+                is UIState.Success<OfferDetails> -> {
+                    DetailsContent(details = s.data)
+                }
+
+                else -> Unit // ✅ makes 'when' exhaustive
             }
         }
     }
 }
 
-// NOTE: Removing the redundant OfferDetailsScreen composable with the full Scaffold logic
-// and keeping only the content function, as the Route handles the Scaffold.
-
-/**
- * UI — stateless, reusable content-only screen (no VM here).
- */
 @Composable
 private fun DetailsContent(details: OfferDetails) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp), // Only horizontal padding here
-        verticalArrangement = Arrangement.spacedBy(16.dp) // Increased spacing
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Use LazyColumn or Scrollable Column if the content exceeds screen height
-        // For simplicity, sticking to Column but adding Scroll state awareness is recommended.
-
         AsyncImage(
             model = details.image,
             contentDescription = details.title,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(250.dp), // Taller image
+                .height(250.dp),
             contentScale = ContentScale.Crop
         )
 
-        // Branded Title
         Text(
             details.title,
             style = MaterialTheme.typography.headlineMedium.copy(color = RoyalPalette.Navy)
         )
 
-        // Price is now only in the bottom bar, removing it here to avoid duplication
-
         Text(details.description, style = MaterialTheme.typography.bodyLarge)
 
-        // Branded Itinerary Header
         Text(
             "Itinerary",
-            style = MaterialTheme.typography.titleLarge.copy(color = RoyalPalette.Navy, fontWeight = FontWeight.SemiBold)
+            style = MaterialTheme.typography.titleLarge.copy(
+                color = RoyalPalette.Navy,
+                fontWeight = FontWeight.SemiBold
+            )
         )
         Text(details.itinerary, style = MaterialTheme.typography.bodyMedium)
 
-        Spacer(Modifier.height(80.dp)) // Spacer to push content above the bottom bar
+        Spacer(Modifier.height(80.dp))
     }
 }
 
 @Composable
 private fun ErrorUi(onRetry: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -157,15 +158,10 @@ private fun ErrorUi(onRetry: () -> Unit) {
     }
 }
 
-/**
- * Backward-compat overload so any old call sites still compile even if they used the old signature.
- * Internally fetches via VM and uses a no-op back action.
- */
 @Composable
 fun OfferDetailsScreen(
     offerId: String,
     viewModel: OfferDetailsViewModel = hiltViewModel()
 ) {
-    // Delegate to the route with a default onBack
     OfferDetailsRoute(offerId = offerId, onBack = {}, viewModel = viewModel)
 }

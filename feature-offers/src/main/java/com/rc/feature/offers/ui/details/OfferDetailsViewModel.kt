@@ -1,4 +1,3 @@
-// feature-offers/src/main/java/com/rc/feature/offers/ui/details/OfferDetailsViewModel.kt
 package com.rc.feature.offers.ui.details
 
 import androidx.lifecycle.ViewModel
@@ -25,7 +24,12 @@ class OfferDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.getOfferDetails(id) }
                 .onSuccess { _state.value = UIState.Success(it) }
-                .onFailure { _state.value = UIState.Error("Failed to load offer", it) }
+                .onFailure { throwable ->
+                    _state.value = UIState.Error(
+                        message = "Failed to load offer",
+                        cause = throwable
+                    )
+                }
         }
     }
 }

@@ -19,15 +19,12 @@ import com.rc.feature.offers.domain.OfferSummary
 import com.rc.feature.offers.util.UIState
 import com.rc.feature.offers.util.formatPrice
 
-// ROYAL CARIBBEAN PALETTE DEFINITION
-// NOTE: Ideally, this should be defined in a shared theme file.
 private object RoyalPalette {
-    val Navy = Color(0xFF061556) // Dark Blue / Oxford Blue
-    val Blue = Color(0xFF0073BB) // Primary Blue / French Blue
-    val Background = Color(0xFFF8FAFB) // Light Off-White
+    val Navy = Color(0xFF061556)
+    val Blue = Color(0xFF0073BB)
+    val Background = Color(0xFFF8FAFB)
 }
 
-//  ADDED @OptIn TO SUPPRESS EXPERIMENTAL WARNINGS
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OffersListScreen(
@@ -36,11 +33,8 @@ fun OffersListScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadOffers()
-    }
+    LaunchedEffect(Unit) { viewModel.loadOffers() }
 
-    // NEW: Scaffold for Top Bar and Background
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -53,20 +47,33 @@ fun OffersListScreen(
         },
         containerColor = RoyalPalette.Background
     ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
             when (val s = state) {
-                is UIState.Loading -> LoadingUi()
-                is UIState.Error -> ErrorUi(onRetry = { viewModel.loadOffers() })
-                is UIState.Success -> OffersListContent(
-                    offers = s.data,
-                    onOfferClick = onOfferClick
-                )
+                is UIState.Loading -> {
+                    LoadingUi()
+                }
+
+                is UIState.Error -> {
+                    ErrorUi(onRetry = { viewModel.loadOffers() })
+                }
+
+                is UIState.Success -> {
+                    OffersListContent(
+                        offers = s.data,
+                        onOfferClick = onOfferClick
+                    )
+                }
+
+                else -> Unit // Ensures 'when' is exhaustive
             }
         }
     }
 }
 
-// 🚨 PLACEHOLDER UI FUNCTIONS (MUST BE DEFINED ELSEWHERE) 🚨
 @Composable
 private fun LoadingUi() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -86,7 +93,6 @@ private fun ErrorUi(onRetry: () -> Unit) {
         }
     }
 }
-// -------------------------------------------------------------
 
 @Composable
 private fun OffersListContent(
@@ -96,7 +102,7 @@ private fun OffersListContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp) // Increased spacing
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(offers, key = { it.id }) { offer ->
             OfferCard(offer = offer, onClick = { onOfferClick(offer.id) })
@@ -106,11 +112,10 @@ private fun OffersListContent(
 
 @Composable
 private fun OfferCard(offer: OfferSummary, onClick: () -> Unit) {
-    // ⚓ UPDATED: Use Surface for card shape and shadow control
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp), // Rounded corners
-        tonalElevation = 6.dp,             // Subtle shadow
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 6.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {
@@ -119,11 +124,10 @@ private fun OfferCard(offer: OfferSummary, onClick: () -> Unit) {
                 contentDescription = offer.title,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp), // Slightly taller image
+                    .height(200.dp),
                 contentScale = ContentScale.Crop
             )
-            Column(Modifier.padding(16.dp)) { // Increased padding
-                // Highlight Title in Navy
+            Column(Modifier.padding(16.dp)) {
                 Text(
                     offer.title,
                     style = MaterialTheme.typography.titleLarge.copy(color = RoyalPalette.Navy),
@@ -139,7 +143,6 @@ private fun OfferCard(offer: OfferSummary, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(8.dp))
-                // Highlight Price in Blue
                 Text(
                     formatPrice(offer.price),
                     style = MaterialTheme.typography.titleMedium.copy(

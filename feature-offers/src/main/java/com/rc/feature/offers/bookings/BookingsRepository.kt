@@ -1,7 +1,9 @@
 package com.rc.feature.offers.bookings
-// feature-offers/src/main/java/com/rc/feature/offers/bookings/BookingsRepository.kt
 
-import com.rc.feature.offers.data.graphql.*
+import com.rc.feature.offers.data.graphql.BookingDto
+import com.rc.feature.offers.data.graphql.CancelResult
+import com.rc.feature.offers.data.graphql.GraphQLRequest
+import com.rc.feature.offers.data.graphql.OffersGraphQLService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -11,18 +13,27 @@ interface BookingsRepository {
 }
 
 class BookingsRepositoryImpl(
-    private val service: com.rc.feature.offers.OffersGraphQLService
+    private val service: OffersGraphQLService
 ) : BookingsRepository {
+
     override suspend fun list(): List<BookingDto> = withContext(Dispatchers.IO) {
-        val req = GraphQLRequest(query = OffersGraphQLService.BOOKINGS_QUERY.trimIndent())
-        service.fetchBookings(req).data?.bookings.orEmpty()
+        val request = GraphQLRequest(
+            query = OffersGraphQLService.BOOKINGS_QUERY.trimIndent()
+        )
+        service.fetchBookings(request).data?.bookings.orEmpty()
     }
 
     override suspend fun cancel(id: String): CancelResult = withContext(Dispatchers.IO) {
-        val req = GraphQLRequest(
+        val request = GraphQLRequest(
             query = OffersGraphQLService.CANCEL_BOOKING_MUTATION.trimIndent(),
             variables = mapOf("id" to id)
         )
-        service.cancelBooking(req).data?.cancel ?: CancelResult(false, "No response", null)
+
+        service.cancelBooking(request).data?.cancelBooking
+            ?: CancelResult(
+                ok = false,
+                message = "No response from cancellation service.",
+                id = null
+            )
     }
 }

@@ -98,7 +98,12 @@ data class BookingsListData(@SerialName("bookings") val bookings: List<BookingDt
 data class CancelEnvelope(@SerialName("data") val data: CancelData? = null)
 
 @Serializable
-data class CancelData(@SerialName("cancelBooking") val cancel: CancelResult? = null)
+data class CancelData(@SerialName("cancelBooking") val cancel: CancelResult? = null) {
+    val cancelBooking: CancelResult?
+        get() {
+            return cancel
+        }
+}
 
 @Serializable
 data class CancelResult(

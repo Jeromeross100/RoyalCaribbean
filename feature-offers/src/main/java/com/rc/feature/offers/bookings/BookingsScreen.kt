@@ -1,9 +1,11 @@
 package com.rc.feature.offers.bookings
 
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -14,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,22 +24,14 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.rc.feature.offers.data.graphql.BookingDto
 import com.rc.feature.offers.util.UIState
-import androidx.compose.foundation.BorderStroke // Added missing import
-import androidx.compose.foundation.shape.RoundedCornerShape // Added missing import
-import androidx.compose.ui.text.font.FontWeight // Added missing import
 
-// ROYAL CARIBBEAN PALETTE DEFINITION
 private object RoyalPalette {
     val Navy = Color(0xFF061556)
     val Blue = Color(0xFF0073BB)
     val Background = Color(0xFFF8FAFB)
 }
 
-// RELIABLE SHIP IMAGE URL (Re-using last working URL)
-private const val ROYAL_SHIP_IMAGE_URL =
-    "https://picsum.photos/id/238/600/400"
-
-// ⚓ CONSTANT FOR THE LOG TAG
+private const val ROYAL_SHIP_IMAGE_URL = "https://picsum.photos/id/238/600/400"
 private const val LOG_TAG = "SHIP_IMAGE"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,12 +45,11 @@ fun BookingsScreen(
 
     LaunchedEffect(Unit) { vm.load() }
 
-    // Show Cancellation Dialog
     bookingToCancel?.let { booking ->
         CancellationDialog(
             booking = booking,
             onConfirm = {
-                vm.cancel(booking.id) { /* could show snackbar */ }
+                vm.cancel(booking.id) { }
                 bookingToCancel = null
             },
             onDismiss = { bookingToCancel = null }
@@ -74,12 +68,17 @@ fun BookingsScreen(
         },
         containerColor = RoyalPalette.Background
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
             when (val s = state) {
-                is UIState.Loading ->
+                is UIState.Loading -> {
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
+                }
 
-                is UIState.Error ->
+                is UIState.Error -> {
                     Column(
                         Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -88,24 +87,28 @@ fun BookingsScreen(
                         Spacer(Modifier.height(12.dp))
                         Button(onClick = { vm.load() }) { Text("Retry") }
                     }
+                }
 
-                is UIState.Success ->
+                is UIState.Success<*> -> {
+                    val bookings = s.data as? List<BookingDto> ?: emptyList()
                     BookingsList(
-                        bookings = s.data,
+                        bookings = bookings,
                         onExploreOffers = onNavigateToOffers,
                         onCancel = { bookingToCancel = it }
                     )
+                }
+
+                else -> Unit // makes 'when' exhaustive
             }
         }
     }
 }
 
-// ENHANCED BookingsList with Branded UI
 @Composable
 private fun BookingsList(
     bookings: List<BookingDto>,
     onExploreOffers: () -> Unit,
-    onCancel: (BookingDto) -> Unit // THIS IS NOW USED BELOW
+    onCancel: (BookingDto) -> Unit
 ) {
     if (bookings.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -113,17 +116,15 @@ private fun BookingsList(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(horizontal = 32.dp)
             ) {
-                // Image loading logic
                 val context = LocalContext.current
-
                 AsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(ROYAL_SHIP_IMAGE_URL)
                         .listener(
-                            onStart = { Log.d(LOG_TAG, "Image load START for: $ROYAL_SHIP_IMAGE_URL") },
-                            onSuccess = { _, _ -> Log.d(LOG_TAG, "Image loaded SUCCESSFULLY!") },
+                            onStart = { Log.d(LOG_TAG, "Image load START") },
+                            onSuccess = { _, _ -> Log.d(LOG_TAG, "Image loaded SUCCESSFULLY") },
                             onError = { _, result ->
-                                Log.e(LOG_TAG, "Image load FAILED! Throwable: ${result.throwable.message}", result.throwable)
+                                Log.e(LOG_TAG, "Image load FAILED: ${result.throwable?.message}")
                             }
                         )
                         .build(),
@@ -133,16 +134,14 @@ private fun BookingsList(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(200.dp)
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 16.dp)
                 )
 
-                // Branded Title
                 Text(
                     text = "No Upcoming Voyages",
                     style = MaterialTheme.typography.titleLarge.copy(color = RoyalPalette.Navy)
                 )
                 Spacer(Modifier.height(8.dp))
-                // Encouraging Body Text
                 Text(
                     text = "Ready to set sail? Explore our best cruise offers and secure your next Royal Caribbean adventure!",
                     style = MaterialTheme.typography.bodyMedium,
@@ -150,7 +149,6 @@ private fun BookingsList(
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(24.dp))
-                // Primary CTA
                 Button(
                     onClick = onExploreOffers,
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalPalette.Blue),
@@ -163,20 +161,17 @@ private fun BookingsList(
         return
     }
 
-    // LazyColumn for actual bookings
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(bookings, key = { it.id }) { b ->
-            // ⚓ Branded Booking Card (COMPLETE IMPLEMENTATION)
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 tonalElevation = 6.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    // Highlight Confirmation ID in Navy Blue and Bold
                     Text(
                         "Confirmation: ${b.confirmationId}",
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -190,18 +185,17 @@ private fun BookingsList(
                     Spacer(Modifier.height(8.dp))
                     Text("Offer ID: ${b.offerId}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     Text("Created: ${b.createdAt}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-
                     Spacer(Modifier.height(12.dp))
-
-                    // Outlined Cancel Button (Uses the onCancel lambda)
                     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
-                            onClick = { onCancel(b) }, // <-- USAGE: onCancel is called here
+                            onClick = { onCancel(b) },
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = MaterialTheme.colorScheme.error
                             ),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-                        ) { Text("Cancel") }
+                        ) {
+                            Text("Cancel")
+                        }
                     }
                 }
             }
@@ -209,7 +203,6 @@ private fun BookingsList(
     }
 }
 
-// Cancellation Confirmation Dialog (remains the same)
 @Composable
 private fun CancellationDialog(
     booking: BookingDto,

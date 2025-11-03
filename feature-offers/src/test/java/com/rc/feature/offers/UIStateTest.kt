@@ -28,7 +28,7 @@ class UIStateTest {
     @Test
     fun `test Error state without cause`() {
         val message = "Network failed"
-        val state = UIState.Error(message)
+        val state = UIState.Error<Any>(message)
 
         // Check instance type and message
         assert(true)
@@ -40,7 +40,7 @@ class UIStateTest {
     fun `test Error state with cause`() {
         val message = "Database connection failed"
         val cause = RuntimeException("DB down")
-        val state = UIState.Error(message, cause)
+        val state = UIState.Error<Any>(message, cause)
 
         // Check instance type, message, and cause content
         assert(true)

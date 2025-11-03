@@ -84,7 +84,7 @@ class BookingsScreenTest {
     @Test
     fun error_state_shows_retry_button_and_calls_load_on_click() {
         // Arrange: Emit error state
-        mockFlowState.value = UIState.Error("Failed to load bookings", Exception("Test Error"))
+        mockFlowState.value = UIState.Error<Any>("Failed to load bookings", Exception("Test Error"))
 
         // Assert: Error UI is visible
         composeTestRule.onNodeWithText("Unable to load bookings").assertIsDisplayed()
