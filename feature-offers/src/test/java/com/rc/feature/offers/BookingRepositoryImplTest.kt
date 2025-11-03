@@ -1,6 +1,5 @@
 package com.rc.feature.offers
 
-// Dependencies needed: JUnit, MockK, kotlinx-coroutines-test
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -10,155 +9,109 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import java.io.IOException
 
-// Import your mock data and DTOs
+// Use the real GraphQL service and models
 import com.rc.feature.offers.data.graphql.*
-import com.rc.feature.offers.bookings.*
-
-// --- Mock DTO Definitions (to resolve Unresolved references) ---
-
-// 🛠️ FIX: Defining the necessary DTOs within the same package for compilation
-data class CancelResultDto(
-    val ok: Boolean,
-    val id: String?,
-    val message: String?
-)
-// NOTE: These are simplified for compilation; the actual DTOs live in the graphql package.
-data class BookingsListEnvelope(val data: BookingsListData)
-data class BookingsListData(val bookings: List<BookingDto>)
-data class CancelEnvelope(val data: CancelData)
-data class CancelData(val cancelBooking: CancelResultDto?)
-
-// --- Mock Service (Must be in scope) ---
-interface OffersGraphQLService {
-    suspend fun fetchBookings(userId: String? = null): BookingsListEnvelope
-    suspend fun cancelBooking(bookingId: String): CancelEnvelope
-}
-
-// --- Mock Cancel Results ---
-object MockCancelResults {
-
-    // Utility function to create a successful result
-    fun success(id: String) = CancelResultDto(
-        ok = true,
-        id = id,
-        message = "Success"
-    )
-
-    // Business rule failure mock
-    val FAILURE_BUSINESS_RULE = CancelResultDto(
-        ok = false,
-        id = null,
-        message = "Cancellation failed: Booking is within 7 days of departure."
-    )
-
-    // Default failure for when the service returns null data
-    val REPOSITORY_DEFAULT_FAILURE = CancelResultDto(
-        ok = false,
-        id = null,
-        message = "Cancellation failed due to unknown service response."
-    )
-}
+import com.rc.feature.offers.bookings.BookingsRepositoryImpl
 
 class BookingsRepositoryImplTest {
 
-    // Assuming this class is defined in com.rc.feature.offers.bookings
     private lateinit var mockService: OffersGraphQLService
     private lateinit var repository: BookingsRepositoryImpl
 
     @Before
     fun setup() {
-        // Initialize mock dependencies
         mockService = mockk()
         repository = BookingsRepositoryImpl(mockService)
     }
 
-    // --- 1. list() Function Tests ---
-
+    // list() - successful response
     @Test
     fun list_Success_ReturnsBookings() = runTest {
-        // Arrange: Mock GraphQL service to return a list of bookings
-        // NOTE: MockBookings and BookingDto must be defined externally or in this package.
-        val mockData = MockBookings.ALL_MOCK_BOOKINGS
-        coEvery { mockService.fetchBookings(any()) } returns
-                BookingsListEnvelope(BookingsListData(mockData))
+        val mockData = listOf(
+            BookingDto(
+                id = "1",
+                offerId = "OFFER_A",
+                createdAt = "2025-11-03T10:00:00Z",
+                email = "user@example.com",
+                guestName = "John Doe",
+                confirmationId = "CONF-001"
+            ),
+            BookingDto(
+                id = "2",
+                offerId = "OFFER_B",
+                createdAt = "2025-11-04T10:00:00Z",
+                email = "user@example.com",
+                guestName = "Jane Smith",
+                confirmationId = "CONF-002"
+            )
+        )
 
-        // Act
+        val response = BookingsListEnvelope(BookingsListData(mockData))
+        coEvery { mockService.fetchBookings(any()) } returns response
+
         val result = repository.list()
-
-        // Assert
         assertEquals(mockData, result)
     }
 
+    // list() - empty response
     @Test
     fun list_EmptyResponse_ReturnsEmptyList() = runTest {
-        // Arrange: Mock GraphQL service to return no bookings
-        coEvery { mockService.fetchBookings(any()) } returns
-                BookingsListEnvelope(BookingsListData(emptyList()))
+        val response = BookingsListEnvelope(BookingsListData(emptyList()))
+        coEvery { mockService.fetchBookings(any()) } returns response
 
-        // Act
         val result = repository.list()
-
-        // Assert
-        assertEquals(0, result.size)
         assertEquals(emptyList(), result)
     }
 
+    // list() - network failure
     @Test
     fun list_NetworkError_ThrowsException() = runTest {
-        // Arrange: Mock GraphQL service to throw an IOException (network failure)
         coEvery { mockService.fetchBookings(any()) } throws IOException("Network down")
 
-        // Assert
         assertFailsWith<IOException> {
             repository.list()
         }
     }
 
-    // --- 2. cancel() Function Tests ---
-
+    // cancel() - success
     @Test
     fun cancel_Success_ReturnsOkTrue() = runTest {
-        val targetId = MockBookings.CANCEL_TARGET_BOOKING.id
-        // Arrange: Mock GraphQL service to return a successful cancellation result
-        coEvery { mockService.cancelBooking(any()) } returns
-                CancelEnvelope(CancelData(MockCancelResults.success(targetId)))
+        val targetId = "123"
+        val successEnvelope = CancelEnvelope(
+            CancelData(CancelResult(ok = true, message = "Success", id = targetId))
+        )
 
-        // Act
+        coEvery { mockService.cancelBooking(any()) } returns successEnvelope
+
         val result = repository.cancel(targetId)
-
-        // Assert
         assertEquals(true, result.ok)
         assertEquals(targetId, result.id)
+        assertEquals("Success", result.message)
     }
 
+    // cancel() - failure
     @Test
     fun cancel_Failure_ReturnsOkFalse() = runTest {
-        val targetId = "some-id"
-        // Arrange: Mock GraphQL service to return a business failure result
-        coEvery { mockService.cancelBooking(any()) } returns
-                CancelEnvelope(CancelData(MockCancelResults.FAILURE_BUSINESS_RULE))
+        val failureEnvelope = CancelEnvelope(
+            CancelData(CancelResult(ok = false, message = "Failed", id = null))
+        )
 
-        // Act
-        val result = repository.cancel(targetId)
+        coEvery { mockService.cancelBooking(any()) } returns failureEnvelope
 
-        // Assert
+        val result = repository.cancel("123")
         assertEquals(false, result.ok)
         assertEquals(null, result.id)
-        assertEquals("Cancellation failed: Booking is within 7 days of departure.", result.message)
+        assertEquals("Failed", result.message)
     }
 
+    // cancel() - null response from service
     @Test
     fun cancel_NoResponseData_ReturnsDefaultFailure() = runTest {
-        val targetId = "some-id"
-        // Arrange: Mock GraphQL service returns an envelope with null data
-        coEvery { mockService.cancelBooking(any()) } returns
-                CancelEnvelope(CancelData(null))
+        val nullEnvelope = CancelEnvelope(CancelData(null))
+        coEvery { mockService.cancelBooking(any()) } returns nullEnvelope
 
-        // Act
-        val result = repository.cancel(targetId)
-
-        // Assert
-        assertEquals(MockCancelResults.REPOSITORY_DEFAULT_FAILURE.ok, result.ok)
-        assertEquals(MockCancelResults.REPOSITORY_DEFAULT_FAILURE.message, result.message)
+        val result = repository.cancel("123")
+        assertEquals(false, result.ok)
+        assertEquals("No response from cancellation service.", result.message)
     }
 }

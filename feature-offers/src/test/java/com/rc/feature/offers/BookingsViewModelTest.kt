@@ -2,7 +2,7 @@ package com.rc.feature.offers
 
 import com.rc.feature.offers.bookings.BookingsRepository
 import com.rc.feature.offers.bookings.BookingsViewModel
-import com.rc.feature.offers.bookings.BookingDto
+import com.rc.feature.offers.data.graphql.BookingDto
 import com.rc.feature.offers.data.graphql.CancelResult
 import com.rc.feature.offers.util.UIState
 import kotlinx.coroutines.Dispatchers
@@ -34,8 +34,22 @@ class BookingsViewModelTest {
     private lateinit var viewModel: BookingsViewModel
 
     private val mockBookings = listOf(
-        BookingDto("1", "Offer A", "2025-11-03", "test@example.com", "Confirmed"),
-        BookingDto("2", "Offer B", "2025-11-04", "test@example.com", "Pending")
+        BookingDto(
+            id = "1",
+            offerId = "OFFER_A",
+            createdAt = "2025-11-03T10:00:00Z",
+            email = "test@example.com",
+            guestName = "John Doe",
+            confirmationId = "CONF-001"
+        ),
+        BookingDto(
+            id = "2",
+            offerId = "OFFER_B",
+            createdAt = "2025-11-04T10:00:00Z",
+            email = "test@example.com",
+            guestName = "Jane Smith",
+            confirmationId = "CONF-002"
+        )
     )
 
     private val testException = RuntimeException("Network Error")
@@ -43,7 +57,7 @@ class BookingsViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = BookingsViewModel(mockRepo, testDispatcher)
+        viewModel = BookingsViewModel(mockRepo)
     }
 
     @After
@@ -73,7 +87,7 @@ class BookingsViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.state.value
-        require(state is UIState.Error<*>) { "Expected Error state but got $state" }
+        require(state is UIState.Error) { "Expected Error state but got $state" }
         assertEquals("Failed to load bookings", state.message)
     }
 
@@ -82,7 +96,7 @@ class BookingsViewModelTest {
     @Test
     fun `cancel should call repo_cancel and load bookings again on success`() = testScope.runTest {
         val bookingId = "123"
-        val successResult = CancelResult(ok = true, message = "Success")
+        val successResult = CancelResult(ok = true, message = "Success", id = bookingId)
 
         `when`(mockRepo.cancel(bookingId)).thenReturn(successResult)
         `when`(mockRepo.list()).thenReturn(mockBookings)
@@ -106,7 +120,7 @@ class BookingsViewModelTest {
     fun `cancel should call repo_cancel and load bookings again on failure`() = testScope.runTest {
         val bookingId = "456"
         val errorException = RuntimeException("Cancel API Error")
-        val expectedResult = CancelResult(ok = false, message = errorException.message ?: "")
+        val expectedResult = CancelResult(ok = false, message = errorException.message ?: "", id = null)
 
         `when`(mockRepo.cancel(bookingId)).thenThrow(errorException)
         `when`(mockRepo.list()).thenReturn(mockBookings)

@@ -13,7 +13,7 @@ interface BookingsRepository {
 }
 
 class BookingsRepositoryImpl(
-    private val service: OffersGraphQLService
+    private val service: OffersGraphQLService //  corrected package reference
 ) : BookingsRepository {
 
     override suspend fun list(): List<BookingDto> = withContext(Dispatchers.IO) {

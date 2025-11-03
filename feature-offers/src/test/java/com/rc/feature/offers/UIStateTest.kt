@@ -11,7 +11,6 @@ class UIStateTest {
     @Test
     fun `test Loading state is correct object`() {
         val state = UIState.Loading
-        // Must be exactly the singleton object
         assertEquals(UIState.Loading, state)
     }
 
@@ -19,31 +18,24 @@ class UIStateTest {
     fun `test Success state correctly holds data`() {
         val testData = "Offer List"
         val state = UIState.Success(testData)
-
-        // Check instance type and data content
-        assert(true)
         assertEquals(testData, state.data)
     }
 
     @Test
     fun `test Error state without cause`() {
         val message = "Network failed"
-        val state = UIState.Error<Any>(message)
+        val state = UIState.Error(message)
 
-        // Check instance type and message
-        assert(true)
         assertEquals(message, state.message)
-        assertNull(state.cause) // Verify cause is null by default
+        assertNull(state.cause)
     }
 
     @Test
     fun `test Error state with cause`() {
         val message = "Database connection failed"
         val cause = RuntimeException("DB down")
-        val state = UIState.Error<Any>(message, cause)
+        val state = UIState.Error(message, cause)
 
-        // Check instance type, message, and cause content
-        assert(true)
         assertEquals(message, state.message)
         assertNotNull(state.cause)
         assertEquals("DB down", state.cause?.message)

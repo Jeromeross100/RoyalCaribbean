@@ -1,49 +1,49 @@
 package com.rc.feature.offers
 
-import com.rc.feature.offers.auth.AuthManager
-import com.rc.feature.offers.auth.AuthUiState
-import com.rc.feature.offers.auth.AuthViewModel
-import com.rc.feature.offers.auth.User // Assuming User is defined here
+import com.rc.feature.offers.auth.AuthRepository
+import com.rc.feature.offers.auth.User
+import com.rc.feature.offers.ui.auth.AuthEvent
+import com.rc.feature.offers.ui.auth.AuthViewModel
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.impl.annotations.MockK
+import junit.framework.TestCase.assertFalse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.test.resetMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
 
-    // Dependency changed: AuthViewModel now uses AuthManager directly
     @MockK
-    private lateinit var mockAuthManager: AuthManager
+    private lateinit var mockRepo: AuthRepository
 
     private lateinit var viewModel: AuthViewModel
-
     private val testDispatcher = StandardTestDispatcher()
 
-    // Style guide fixes applied
     private val testFullName = "John Doe"
     private val testEmail = "john@example.com"
     private val testPassword = "password123"
 
-    // FIX APPLIED HERE: Changed 'name' to 'fullName' to resolve the parameter mismatch error.
-    private val testUser = User(id = "1", email = testEmail, fullName = testFullName)
+    // FIX: use correct param names for User data class
+    private val testUser = User(id = "1", fullName = testFullName, email = testEmail)
 
     @Before
     fun setUp() {
         MockKAnnotations.init(this)
         Dispatchers.setMain(testDispatcher)
-        // ViewModel instantiation changed
-        viewModel = AuthViewModel(mockAuthManager)
+        viewModel = AuthViewModel(mockRepo)
     }
 
     @After
@@ -51,109 +51,115 @@ class AuthViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // --- Sign-In Logic Tests ---
+    // --- SIGN IN TESTS ---
 
     @Test
-    fun `signIn - should transition from Idle to Loading and then to Success`() = runTest {
-        // Arrange
-        // Mocking the specific function and arguments required by the ViewModel
-        coEvery { mockAuthManager.signIn(testEmail, testPassword) } returns Result.success(testUser)
+    fun `submit in SignIn mode should update state to Success and emit SignedIn`() = runTest {
+        coEvery { mockRepo.signIn(testEmail, testPassword) } returns Result.success(testUser)
 
-        // Assert starting state
-        assertEquals(AuthUiState.Idle, viewModel.state.value)
-
-        // Act
-        viewModel.signIn(testEmail, testPassword)
-
-        // Assert pre-advance (Loading state)
-        assertEquals(AuthUiState.Loading, viewModel.state.value)
-
-        // Advance coroutine
+        viewModel.updateEmail(testEmail)
+        viewModel.updatePassword(testPassword)
+        viewModel.submit()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Assert post-advance (Success state)
-        val finalState = viewModel.state.value
-        assertTrue(finalState is AuthUiState.Success)
-        assertEquals(testUser, finalState.user)
+        val state = viewModel.state.value
+        assertFalse(state.isLoading)
+        assertEquals(testUser, state.user)
+        assertNull(state.error)
+
+        val event = viewModel.events.first()
+        assertTrue(event is AuthEvent.SignedIn)
+        assertEquals(testUser, event.user)
     }
 
     @Test
-    fun `signIn - should transition from Idle to Loading and then to Error on failure`() = runTest {
-        // Arrange
-        val errorMessage = "Bad password"
-        coEvery { mockAuthManager.signIn(any(), any()) } returns Result.failure(Exception(errorMessage))
+    fun `submit in SignIn mode should update state to Error on failure`() = runTest {
+        val errorMsg = "Invalid credentials"
+        coEvery { mockRepo.signIn(testEmail, testPassword) } returns Result.failure(Exception(errorMsg))
 
-        // Act
-        viewModel.signIn(testEmail, testPassword)
-
-        // Assert pre-advance
-        assertEquals(AuthUiState.Loading, viewModel.state.value)
-
-        // Advance coroutine
+        viewModel.updateEmail(testEmail)
+        viewModel.updatePassword(testPassword)
+        viewModel.submit()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Assert post-advance (Error state)
-        val finalState = viewModel.state.value
-        assertTrue(finalState is AuthUiState.Error)
-        assertEquals(errorMessage, finalState.message)
+        val state = viewModel.state.value
+        assertFalse(state.isLoading)
+        assertNull(state.user)
+        assertEquals(errorMsg, state.error)
     }
 
-    // --- Sign-Up Logic Tests ---
+    // --- SIGN UP TESTS ---
 
     @Test
-    fun `signUp - should transition from Idle to Loading and then to Success`() = runTest {
-        // Arrange
-        // The new ViewModel's signUp function only takes email and password
-        coEvery { mockAuthManager.signUp(testEmail, testPassword) } returns Result.success(testUser)
+    fun `submit in CreateAccount mode should update state to Success and emit SignedUp`() = runTest {
+        coEvery { mockRepo.signUp(testFullName, testEmail, testPassword) } returns Result.success(testUser)
 
-        // Act
-        viewModel.signUp(testEmail, testPassword)
-
-        // Assert pre-advance
-        assertEquals(AuthUiState.Loading, viewModel.state.value)
-
-        // Advance coroutine
+        viewModel.toggleMode() // switch to CreateAccount
+        viewModel.updateFullName(testFullName)
+        viewModel.updateEmail(testEmail)
+        viewModel.updatePassword(testPassword)
+        viewModel.submit()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Assert post-advance (Success state)
-        val finalState = viewModel.state.value
-        assertTrue(finalState is AuthUiState.Success)
-        assertEquals(testUser, finalState.user)
+        val state = viewModel.state.value
+        assertFalse(state.isLoading)
+        assertEquals(testUser, state.user)
+        assertNull(state.error)
+
+        val event = viewModel.events.first()
+        assertTrue(event is AuthEvent.SignedUp)
+        assertEquals(testUser, event.user)
     }
 
     @Test
-    fun `signUp - should transition from Idle to Loading and then to Error on failure`() = runTest {
-        // Arrange
-        val errorMessage = "User already exists"
-        coEvery { mockAuthManager.signUp(any(), any()) } returns Result.failure(Exception(errorMessage))
+    fun `submit in CreateAccount mode should update state to Error on failure`() = runTest {
+        val errorMsg = "User already exists"
+        coEvery { mockRepo.signUp(any(), any(), any()) } returns Result.failure(Exception(errorMsg))
 
-        // Act
-        viewModel.signUp(testEmail, testPassword)
+        viewModel.toggleMode()
+        viewModel.updateFullName(testFullName)
+        viewModel.updateEmail(testEmail)
+        viewModel.updatePassword(testPassword)
+        viewModel.submit()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Assert post-advance (Error state)
-        val finalState = viewModel.state.value
-        assertTrue(finalState is AuthUiState.Error)
-        assertEquals(errorMessage, finalState.message)
+        val state = viewModel.state.value
+        assertFalse(state.isLoading)
+        assertNull(state.user)
+        assertEquals(errorMsg, state.error)
     }
 
-    // --- Sign-Out Test ---
+    // --- MODE TOGGLE TEST ---
 
     @Test
-    fun `signOut should transition to Idle state`() = runTest {
-        // Arrange
-        // Set an initial state (Success)
-        viewModel.signIn(testEmail, testPassword) // This will set the state to Success
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `toggleMode should switch between SignIn and CreateAccount`() {
+        val initialMode = viewModel.state.value.mode
+        viewModel.toggleMode()
+        assertNotEquals(initialMode, viewModel.state.value.mode)
+        viewModel.toggleMode()
+        assertEquals(initialMode, viewModel.state.value.mode)
+    }
 
-        // Mock the signOut method (it doesn't return anything useful but should be mocked)
-        coEvery { mockAuthManager.signOut() } returns Unit
+    // --- PASSWORD VISIBILITY TEST ---
 
-        // Act
-        viewModel.signOut()
-        testDispatcher.scheduler.advanceUntilIdle()
+    @Test
+    fun `togglePasswordVisibility should flip boolean state`() {
+        val initial = viewModel.state.value.isPasswordVisible
+        viewModel.togglePasswordVisibility()
+        assertEquals(!initial, viewModel.state.value.isPasswordVisible)
+    }
 
-        // Assert
-        assertEquals(AuthUiState.Idle, viewModel.state.value)
+    // --- FIELD UPDATE TESTS ---
+
+    @Test
+    fun `update functions should modify fields correctly`() {
+        viewModel.updateFullName(testFullName)
+        viewModel.updateEmail(testEmail)
+        viewModel.updatePassword(testPassword)
+
+        val state = viewModel.state.value
+        assertEquals(testFullName, state.fullName)
+        assertEquals(testEmail, state.email)
+        assertEquals(testPassword, state.password)
     }
 }
