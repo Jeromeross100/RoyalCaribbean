@@ -20,7 +20,7 @@ class AuthManager @Inject constructor() : AuthManagerContract {
 
         val username = email.substringBefore("@")
         val user = User(
-            id = UserId("u-$username"),
+            id = UserId("u-$username").toString(),
             fullName = "Captain ${username.replaceFirstChar { it.uppercase() }}",
             email = email
         )
@@ -36,7 +36,7 @@ class AuthManager @Inject constructor() : AuthManagerContract {
 
         val username = email.substringBefore("@")
         val user = User(
-            id = UserId("u-$username"),
+            id = UserId("u-$username").toString(),
             fullName = "New Sailor ${username.replaceFirstChar { it.uppercase() }}",
             email = email
         )

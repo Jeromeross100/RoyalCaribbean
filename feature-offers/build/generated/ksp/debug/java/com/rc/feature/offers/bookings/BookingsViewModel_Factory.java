@@ -39,6 +39,6 @@ public final class BookingsViewModel_Factory implements Factory<BookingsViewMode
   }
 
   public static BookingsViewModel newInstance(BookingsRepository repo) {
-    return new BookingsViewModel(repo);
+    return new BookingsViewModel(repo, mainDispatcherRule.testDispatcher);
   }
 }

@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.ui.test.junit4.android)
     debugImplementation(libs.androidx.ui.tooling)
 
     // Icons (needed here because RootNavHost is in this module)
@@ -70,4 +71,12 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test.v173)
+    testImplementation(libs.androidx.core.testing)
+    testImplementation(libs.junit4)
+    testImplementation(libs.kotlin.test.junit)
+    debugImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.test)
 }

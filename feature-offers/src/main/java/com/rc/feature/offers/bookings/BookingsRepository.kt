@@ -11,7 +11,7 @@ interface BookingsRepository {
 }
 
 class BookingsRepositoryImpl(
-    private val service: OffersGraphQLService
+    private val service: com.rc.feature.offers.OffersGraphQLService
 ) : BookingsRepository {
     override suspend fun list(): List<BookingDto> = withContext(Dispatchers.IO) {
         val req = GraphQLRequest(query = OffersGraphQLService.BOOKINGS_QUERY.trimIndent())

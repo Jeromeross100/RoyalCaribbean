@@ -37,7 +37,7 @@ class FakeAuthRepository @Inject constructor() : AuthRepository { // Removed 'ab
         if (!email.contains("@") || password.length < 6) {
             return Result.failure(IllegalArgumentException("Enter a valid email and a 6+ character password"))
         }
-        val user = User(UserId(UUID.randomUUID().toString()), fullName.trim(), key)
+        val user = User(UserId(UUID.randomUUID().toString()).toString(), fullName.trim(), key)
         users[key] = user to password
         _user.value = user // Use the StateFlow to track logged in status
         return Result.success(user)

@@ -11,11 +11,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestDispatcher
 import javax.inject.Inject
 
 @HiltViewModel
 class BookingsViewModel @Inject constructor(
-    private val repo: BookingsRepository
+    private val repo: BookingsRepository,
+    testDispatcher: TestDispatcher
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<UIState<List<BookingDto>>>(UIState.Loading)

@@ -6,7 +6,7 @@ package com.rc.feature.offers.auth
 value class UserId(val value: String)
 
 data class User(
-    val id: UserId,
+    val id: String,
     val fullName: String,
     val email: String,
     val crownAnchorsTier: String = "Gold",
