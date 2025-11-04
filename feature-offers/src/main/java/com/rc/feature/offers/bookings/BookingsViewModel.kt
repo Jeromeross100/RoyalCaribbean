@@ -2,8 +2,10 @@ package com.rc.feature.offers.bookings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.rc.feature.offers.data.graphql.BookingDto
-import com.rc.feature.offers.data.graphql.CancelResult
+// FIX 1: Change import from .graphql.BookingDto to the correct .data.BookingDto
+import com.rc.feature.offers.data.BookingDto
+// FIX 2: Change import from .graphql.CancelResult to the correct .data.CancelResult
+import com.rc.feature.offers.data.CancelResult
 import com.rc.feature.offers.util.UIState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +18,7 @@ class BookingsViewModel @Inject constructor(
     private val repo: BookingsRepository
 ) : ViewModel() {
 
+    // FIX 3: The StateFlow type parameter now uses the correct BookingDto package
     private val _state = MutableStateFlow<UIState<List<BookingDto>>>(UIState.Loading)
     val state: StateFlow<UIState<List<BookingDto>>> = _state
 
@@ -24,13 +27,15 @@ class BookingsViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repo.list() }
                 .onSuccess { bookings ->
+                    // Assignment is now correct because types match:
+                    // UIState.Success<List<com.rc.feature.offers.data.BookingDto>>
                     _state.value = UIState.Success(bookings)
                 }
                 .onFailure { throwable ->
-                    //  Use "cause" instead of "throwable"
+                    // Using `throwable` is fine, but adhering to the comment suggestion:
                     _state.value = UIState.Error(
                         message = "Failed to load bookings",
-                        cause = throwable
+                        cause = throwable // Using throwable is still the correct parameter name
                     )
                 }
         }

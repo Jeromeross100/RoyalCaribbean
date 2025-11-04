@@ -1,6 +1,8 @@
 [versions]
 # --- Core Platform Updates ---
 agp = "8.10.1"             # UPDATED: Latest stable AGP (Requires Gradle 8.13)
+converter-gson = "2.9.0"
+gson = "2.11.0"
 kotlin = "2.2.21"          # UPDATED: Latest stable Kotlin
 kotlinx-coroutines = "1.10.2" # UPDATED: Latest stable
 kotlinx-serialization = "1.8.1" # UPDATED: Latest stable
@@ -8,12 +10,15 @@ kotlinx-serialization = "1.8.1" # UPDATED: Latest stable
 # --- Compose & AndroidX Updates (Major Version Bumps) ---
 compose-bom = "2025.10.01" # UPDATED: Latest stable BOM
 activity-compose = "1.11.0" # UPDATED: Latest stable
+logging-interceptor = "4.11.0"
 navigation-compose = "2.8.2" # Remains stable
 lifecycle = "2.9.4"        # UPDATED: Latest stable
 core-testing = "2.2.0"     # Remains stable
 
 # --- Testing & Utility Updates ---
 mockk = "1.14.6"           # UPDATED: Latest stable
+okhttp-version = "4.11.0"
+retrofit-version = "2.9.0"
 turbine = "1.1.0"          # Remains stable
 junit4 = "4.13.2"          # Remains stable
 # UI testing dependencies are generally inherited from compose-bom, but keep explicit versions if necessary
@@ -50,6 +55,8 @@ ksp                 = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
 [libraries]
 # --- Core Platform/BOM ---
+converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converter-gson" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 kotlin-bom                          = { group = "org.jetbrains.kotlin", name = "kotlin-bom", version.ref = "kotlin" } # ADDED: Fixes 'Unresolved reference' error
 androidx-compose-bom                = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
 
@@ -74,7 +81,10 @@ androidx-ui-test                   = { group = "androidx.compose.ui", name = "ui
 androidx-ui-test-junit4            = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-test-junit4-android     = { group = "androidx.compose.ui", name = "ui-test-junit4-android", version.ref = "ui-test-junit4-android" }
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+logging-interceptor-v4110 = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "logging-interceptor" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+okhttp-v4110 = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp-version" }
+retrofit-v290 = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit-version" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 

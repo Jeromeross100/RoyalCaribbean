@@ -1,4 +1,5 @@
 // app/src/main/java/.../AppNavHost.kt
+
 package com.rc.feature.offers.ui.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,13 +17,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-
-// --- NEW SCREEN IMPORTS ---
+import com.rc.feature.offers.account.LoyaltyProgramDetailsScreen
 import com.rc.feature.offers.ship.ShipUtilityScreen
 import com.rc.feature.offers.ports.PortPlannerScreen
 import com.rc.feature.offers.account.WalletScreen
-// --------------------------
-
 import com.rc.feature.offers.auth.AuthViewModel
 import com.rc.feature.offers.auth.AuthUiState
 import com.rc.feature.offers.profile.ProfileScreen
@@ -107,7 +105,7 @@ fun AppNavHost() {
                     onSignIn = { nav.navigate(RootRoutes.AUTH) },
                     onViewDestinations = { nav.navigate(RootRoutes.DESTINATIONS) },
                     onLearnMoreLoyalty = { nav.navigate(RootRoutes.LOYALTY) },
-                    // *** FIX: Connect the utility lambdas to the correct routes ***
+                    // *** Connect the utility lambdas to the correct routes ***
                     onNavigateToShipUtility = { nav.navigate(RootRoutes.SHIP_UTILITY) },
                     onNavigateToPortPlanner = { nav.navigate(RootRoutes.PORT_PLANNER) },
                     onNavigateToWallet = { nav.navigate(RootRoutes.WALLET) }
@@ -130,7 +128,7 @@ fun AppNavHost() {
             // SCHEDULE
             composable(RootRoutes.SCHEDULE) { ScheduleScreen() }
 
-            // --- NEW SCREEN DEFINITIONS (These are correct) ---
+            // --- NEW SCREEN DEFINITIONS ---
             composable(RootRoutes.SHIP_UTILITY) {
                 ShipUtilityScreen()
             }
@@ -139,8 +137,13 @@ fun AppNavHost() {
                 PortPlannerScreen()
             }
 
+            // FIX: WalletScreen must receive the required navigation lambda
             composable(RootRoutes.WALLET) {
-                WalletScreen()
+                WalletScreen(
+                    onNavigateToLoyaltyDetails = {
+                        nav.navigate(RootRoutes.LOYALTY)
+                    }
+                )
             }
             // ------------------------------
 
@@ -149,9 +152,10 @@ fun AppNavHost() {
                 Text(text = "Destinations Screen Content")
             }
 
-            // LOYALTY (Placeholder for the new route)
+            // LOYALTY (Loyalty Program Details Screen)
             composable(RootRoutes.LOYALTY) {
-                Text(text = "Loyalty Program Screen Content")
+                // *** UPDATED: Replaced Text with the actual LoyaltyProgramDetailsScreen ***
+                LoyaltyProgramDetailsScreen()
             }
 
             // OFFER DETAILS

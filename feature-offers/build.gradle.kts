@@ -59,6 +59,19 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.kotlinx.serialization)
 
+    // Retrofit & Networking Dependencies
+    implementation (libs.retrofit.v290)         // Use your latest version
+    implementation (libs.okhttp.v4110)          // Use your latest version
+
+    // FIX 1: Add the Gson Converter
+    implementation (libs.converter.gson)
+
+    // FIX 2: Add Gson itself (often needed implicitly or explicitly)
+    implementation (libs.gson)
+
+    // Highly Recommended: Logging for OkHttpClient, as you referenced it in provideOkHttpClient
+    implementation (libs.logging.interceptor.v4110)
+
     // Images
     implementation(libs.coil.compose)
 

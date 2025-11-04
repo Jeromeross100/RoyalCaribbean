@@ -3,6 +3,14 @@ package com.rc.feature.offers.data.graphql
 
 import retrofit2.http.Body
 import retrofit2.http.POST
+// ADDED IMPORTS for the new data models from the 'com.rc.feature.offers.data' package
+import com.rc.feature.offers.data.BookingsListEnvelope
+import com.rc.feature.offers.data.BookNowEnvelope
+import com.rc.feature.offers.data.CancelEnvelope
+import com.rc.feature.offers.data.GraphQLRequest
+import com.rc.feature.offers.data.OfferDetailsEnvelope
+import com.rc.feature.offers.data.OffersListEnvelope
+
 
 /**
  * GraphQL transport for Offers & Bookings.

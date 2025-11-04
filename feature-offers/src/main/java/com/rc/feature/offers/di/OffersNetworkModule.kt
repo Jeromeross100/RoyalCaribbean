@@ -1,47 +1,82 @@
 // feature-offers/src/main/java/com/rc/feature/offers/di/OffersNetworkModule.kt
+
 package com.rc.feature.offers.di
 
+import com.rc.feature.offers.bookings.BookingsRepository
+import com.rc.feature.offers.bookings.BookingsRepositoryImpl
+import com.rc.feature.offers.data.OffersRepository
+import com.rc.feature.offers.data.OffersService
 import com.rc.feature.offers.data.graphql.OffersGraphQLService
+import com.rc.feature.offers.data.graphql.OffersRepositoryImpl
+// This line was causing a conflict due to duplicate name (OffersRepositoryImpl)
+// import com.rc.feature.offers.data.graphql.OffersRepositoryImpl // Make sure this line is NOT present
+
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Singleton
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+private const val BASE_URL = "http://10.0.2.2:4000/"
 
 @Module
 @InstallIn(SingletonComponent::class)
-object OffersNetworkModule {
+// This abstract class contains both @Binds (implicitly) and @Provides (via companion object)
+abstract class OffersDataBindingsModule {
 
-    @Provides
+    // --- @BINDS METHODS (Interface bindings) ---
+
+    @Binds
     @Singleton
-    fun provideOkHttp(): OkHttpClient =
-        OkHttpClient.Builder()
-            .addInterceptor(
-                HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
-            )
-            .build()
+    abstract fun bindOffersRepository(
+        impl: OffersRepositoryImpl
+    ): OffersRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideRetrofit(client: OkHttpClient): Retrofit {
-        val json = Json { ignoreUnknownKeys = true; isLenient = true }
-        val contentType = "application/json".toMediaType()
+    abstract fun bindBookingsRepository(
+        impl: BookingsRepositoryImpl
+    ): BookingsRepository
 
-        return Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:4000/") // emulator -> host machine
-            .addConverterFactory(json.asConverterFactory(contentType))
-            .client(client)
-            .build()
+    // --- @PROVIDES METHODS (Instance creation) ---
+
+    // FIX: Remove the redundant @InstallIn annotation.
+    // The outer class's @Module and @InstallIn annotations apply here.
+    companion object {
+
+        @Provides
+        @Singleton
+        fun provideOkHttpClient(): OkHttpClient {
+            return OkHttpClient.Builder()
+                .build()
+        }
+
+        @Provides
+        @Singleton
+        fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+            return Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+        }
+
+        @Suppress("UNUSED")
+        @Provides
+        @Singleton
+        fun provideOffersService(retrofit: Retrofit): OffersService {
+            return retrofit.create(OffersService::class.java)
+        }
+
+        @Suppress("UNUSED")
+        @Provides
+        @Singleton
+        fun provideOffersGraphQLService(retrofit: Retrofit): OffersGraphQLService {
+            return retrofit.create(OffersGraphQLService::class.java)
+        }
     }
-
-    @Provides
-    @Singleton
-    fun provideService(retrofit: Retrofit): OffersGraphQLService =
-        retrofit.create(OffersGraphQLService::class.java) // explicit type fixes inference error
 }

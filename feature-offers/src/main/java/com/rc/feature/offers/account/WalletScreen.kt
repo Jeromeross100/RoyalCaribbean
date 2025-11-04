@@ -1,41 +1,36 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+// feature-offers/src/main/java/com/rc/feature/offers/account/WalletScreen.kt
 
 package com.rc.feature.offers.account
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview // FIX 2: Import for Preview
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.rc.feature.offers.theme.RoyalPalette
 
-// --- Data Structures ---
-data class OnboardTransaction(val date: String, val description: String, val amount: String)
-data class Package(val name: String, val status: String, val color: Color)
 
-// --- Palette (Re-defined for file independence) ---
-private object RoyalPalette {
-    val Navy = Color(0xFF061556)
-    val Blue = Color(0xFF0073BB)
-    val Gold = Color(0xFFFEBD11)
-    val Background = Color(0xFFF8FAFB)
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(
     balance: String = "$150.00",
-    loyaltyTier: String = "Emerald"
+    loyaltyTier: String = "Emerald",
+    onNavigateToLoyaltyDetails: () -> Unit // Navigation action
 ) {
+    // Uses data classes imported from WalletModels.kt
     val transactions = listOf(
         OnboardTransaction("10/30 4:30 PM", "Drink Package Purchase", "$180.00"),
-        OnboardTransaction("10/30 8:00 PM", "Specialty Coffee - Cafe", "$4.50"),
         OnboardTransaction("10/31 10:00 AM", "Shore Excursion Deposit", "$50.00")
     )
     val packages = listOf(
@@ -48,7 +43,7 @@ fun WalletScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("My Wallet & Account") },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = RoyalPalette.Navy,
                     titleContentColor = Color.White
                 )
@@ -57,11 +52,19 @@ fun WalletScreen(
         containerColor = RoyalPalette.Background
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { BalanceAndLoyaltyCard(balance, loyaltyTier) }
+            item {
+                BalanceAndLoyaltyCard(
+                    balance = balance,
+                    loyaltyTier = loyaltyTier,
+                    onViewLoyaltyDetails = onNavigateToLoyaltyDetails
+                )
+            }
             item { Text("My Active Packages", style = MaterialTheme.typography.titleLarge.copy(color = RoyalPalette.Navy, fontWeight = FontWeight.Bold)) }
             items(packages) { pkg -> PackageCard(pkg) }
             item { Text("Transaction History", style = MaterialTheme.typography.titleLarge.copy(color = RoyalPalette.Navy, fontWeight = FontWeight.Bold)) }
@@ -71,7 +74,11 @@ fun WalletScreen(
 }
 
 @Composable
-private fun BalanceAndLoyaltyCard(balance: String, loyaltyTier: String) {
+private fun BalanceAndLoyaltyCard(
+    balance: String,
+    loyaltyTier: String,
+    onViewLoyaltyDetails: () -> Unit
+) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -86,8 +93,30 @@ private fun BalanceAndLoyaltyCard(balance: String, loyaltyTier: String) {
                 style = MaterialTheme.typography.headlineLarge.copy(color = RoyalPalette.Navy, fontWeight = FontWeight.ExtraBold),
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            HorizontalDivider(Modifier.padding(vertical = 8.dp)) // FIX 1: Replaced Divider with HorizontalDivider
-            Text("Crown & Anchor Tier: $loyaltyTier", style = MaterialTheme.typography.titleMedium.copy(color = RoyalPalette.Gold, fontWeight = FontWeight.SemiBold)) // FIX 3: Removed redundant {}
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+            // FIX: Loyalty section is clickable and uses RoyalPalette
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onViewLoyaltyDetails)
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Crown & Anchor Tier: $loyaltyTier",
+                    style = MaterialTheme.typography.titleMedium.copy(color = RoyalPalette.Gold, fontWeight = FontWeight.SemiBold)
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "View Details",
+                    tint = RoyalPalette.Gold,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .padding(start = 4.dp)
+                )
+            }
         }
     }
 }
@@ -95,25 +124,31 @@ private fun BalanceAndLoyaltyCard(balance: String, loyaltyTier: String) {
 @Composable
 private fun PackageCard(pkg: Package) {
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(pkg.name, style = MaterialTheme.typography.titleMedium.copy(color = RoyalPalette.Navy))
-                Text(pkg.status, style = MaterialTheme.typography.bodyMedium.copy(color = pkg.color))
+                Text(
+                    pkg.name,
+                    style = MaterialTheme.typography.titleMedium.copy(color = RoyalPalette.Navy, fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    pkg.status,
+                    style = MaterialTheme.typography.bodySmall.copy(color = if (pkg.status == "Active") pkg.color else Color.Gray)
+                )
             }
-            Button(
-                onClick = { /* Upgrade/Manage Action */ },
-                colors = ButtonDefaults.buttonColors(containerColor = RoyalPalette.Blue)
-            ) {
-                Text("Manage")
-            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Package Details",
+                tint = RoyalPalette.Navy
+            )
         }
     }
 }
@@ -121,26 +156,33 @@ private fun PackageCard(pkg: Package) {
 @Composable
 private fun TransactionRow(tx: OnboardTransaction) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(tx.description, style = MaterialTheme.typography.titleSmall.copy(color = RoyalPalette.Navy, fontWeight = FontWeight.Medium))
-            Text(tx.date, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            Text(
+                tx.description,
+                style = MaterialTheme.typography.bodyLarge.copy(color = RoyalPalette.Navy)
+            )
+            Text(
+                tx.date,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
         }
         Text(
             tx.amount,
-            style = MaterialTheme.typography.titleSmall.copy(color = RoyalPalette.Blue, fontWeight = FontWeight.SemiBold)
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
         )
     }
-    HorizontalDivider() // FIX 1: Replaced Divider with HorizontalDivider
+    HorizontalDivider(color = RoyalPalette.Blue)
 }
 
-// FIX 2: Add a Preview function to make the screen runnable
 @Preview(showBackground = true)
 @Composable
 fun WalletScreenPreview() {
-    WalletScreen()
-
+    WalletScreen(onNavigateToLoyaltyDetails = {})
 }

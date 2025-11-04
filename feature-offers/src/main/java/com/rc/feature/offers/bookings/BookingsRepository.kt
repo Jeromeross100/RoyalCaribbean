@@ -1,25 +1,33 @@
+// feature-offers/src/main/java/com/rc/feature/offers/bookings/BookingsRepository.kt
+
 package com.rc.feature.offers.bookings
 
-import com.rc.feature.offers.data.graphql.BookingDto
-import com.rc.feature.offers.data.graphql.CancelResult
-import com.rc.feature.offers.data.graphql.GraphQLRequest
-import com.rc.feature.offers.data.graphql.OffersGraphQLService
+// FIXED IMPORTS: Use the standard 'data' package for all shared DTOs
+import com.rc.feature.offers.data.BookingDto // CORRECT DTO PACKAGE
+import com.rc.feature.offers.data.CancelResult // CORRECT DTO PACKAGE
+import com.rc.feature.offers.data.GraphQLRequest // CORRECT DTO PACKAGE
+import com.rc.feature.offers.data.graphql.OffersGraphQLService // GraphQLService stays in its package
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import javax.inject.Inject
 
 interface BookingsRepository {
+    // Interface now uses the correct DTO package
     suspend fun list(): List<BookingDto>
     suspend fun cancel(id: String): CancelResult
 }
 
-class BookingsRepositoryImpl(
-    private val service: OffersGraphQLService //  corrected package reference
+class BookingsRepositoryImpl @Inject constructor(
+    private val service: OffersGraphQLService
 ) : BookingsRepository {
 
     override suspend fun list(): List<BookingDto> = withContext(Dispatchers.IO) {
         val request = GraphQLRequest(
             query = OffersGraphQLService.BOOKINGS_QUERY.trimIndent()
         )
+        // NOTE: While the response object is an Envelope, the list() implementation 
+        // correctly extracts the desired List<BookingDto> from inside the envelope.
         service.fetchBookings(request).data?.bookings.orEmpty()
     }
 
@@ -29,11 +37,18 @@ class BookingsRepositoryImpl(
             variables = mapOf("id" to id)
         )
 
-        service.cancelBooking(request).data?.cancelBooking
+        // Ensure you extract and handle errors/nulls for mutations as well
+        val resp = service.cancelBooking(request)
+
+        if (!resp.errors.isNullOrEmpty()) {
+            throw IOException("GraphQL Error during cancellation: ${resp.errors.firstOrNull()}")
+        }
+
+        resp.data?.cancelBooking
             ?: CancelResult(
                 ok = false,
                 message = "No response from cancellation service.",
-                id = null
+                id = id
             )
     }
 }

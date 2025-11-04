@@ -3,8 +3,6 @@ package com.rc.feature.offers.data
 
 import com.rc.feature.offers.domain.OfferDetails
 import com.rc.feature.offers.domain.OfferSummary
-import com.rc.feature.offers.data.graphql.BookNowResult
-import com.rc.feature.offers.data.graphql.BookingDto
 import kotlinx.coroutines.delay
 import java.util.UUID
 
@@ -19,6 +17,33 @@ class FakeOffersRepository : OffersRepository {
             price = "$${199 + it * 10} pp"
         )
     }
+
+    // NEW FAKE DATA: A small list of fake bookings
+    private val fakeBookings = listOf(
+        BookingDto(
+            id = "b1",
+            confirmationId = "RC-CRUISE1",
+            offerId = "1",
+            guestName = "Jane Doe",
+            email = "jane@example.com",
+            createdAt = "1700000000000"
+        ),
+        BookingDto(
+            id = "b2",
+            confirmationId = "RC-CRUISE2",
+            offerId = "3",
+            guestName = "Jane Doe",
+            email = "jane@example.com",
+            createdAt = "1700100000000"
+        )
+    )
+
+    // --- FIX: Implementation for the abstract member from OffersRepository ---
+    override suspend fun getBookings(): List<BookingDto> {
+        delay(300)
+        return fakeBookings
+    }
+    // -------------------------------------------------------------------------
 
     override suspend fun getOffers(): List<OfferSummary> {
         delay(400)
